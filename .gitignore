@@ -1,6 +1,9 @@
 __pycache__/
 *.pyc
 service_account.json
+*.json
 .clasprc.json
 .env
 .clasp.json
+config.py
+Egypt_Retail_Summit_2026_Prospects.csv
