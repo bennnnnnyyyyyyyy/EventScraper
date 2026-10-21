@@ -41,7 +41,7 @@ def find_people(domain: str) -> list[dict]:
     Returns normalized dicts compatible with person_to_row.
     """
     payload = {
-        "q_organization_domains": [domain],   # array, bare domain only (no https://)
+        "q_organization_domains": domain,   # string format required by Apollo API
         "person_titles": PERSON_TITLES,
         "person_locations": PERSON_LOCATIONS,
         "per_page": PEOPLE_PER_DOMAIN,
@@ -51,7 +51,7 @@ def find_people(domain: str) -> list[dict]:
     return [
         {
             "id": p.get("id", ""),
-            "name": p.get("name") or f'{p.get("first_name", "")} {p.get("last_name", "")}'.strip(),
+            "name": p.get("name") or f'{p.get("first_name", "")} {p.get("last_name") or p.get("last_name_obfuscated", "")}'.strip(),
             "title": p.get("title", ""),
             "email": p.get("email") or "",
             "linkedin_url": p.get("linkedin_url") or "",
