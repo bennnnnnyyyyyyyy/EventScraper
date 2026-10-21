@@ -1,9 +1,14 @@
 __pycache__/
 *.pyc
 service_account.json
-*.json
+bd-tracker-auth-2026-*.json
 .clasprc.json
 .env
 .clasp.json
 config.py
 Egypt_Retail_Summit_2026_Prospects.csv
+.agents/
+infodump.md
+
+
+.agents/

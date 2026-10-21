@@ -38,25 +38,23 @@ def _post(endpoint: str, payload: dict, retries: int = 3) -> dict:
 def find_people(domain: str) -> list[dict]:
     """
     Search Apollo for people at `domain` matching our title + location filters.
-    Returns a list of raw person dicts.
+    Returns normalized dicts compatible with person_to_row.
     """
     payload = {
-        "q_organization_domains_list": [domain],
+        "q_organization_domains": [domain],   # array, bare domain only (no https://)
         "person_titles": PERSON_TITLES,
         "person_locations": PERSON_LOCATIONS,
         "per_page": PEOPLE_PER_DOMAIN,
         "page": 1,
     }
-    data = _post("mixed_people/search", payload)
-    return data.get("people", [])
-
-
-def enrich_email(person_id: str) -> str | None:
-    """
-    Run an email enrichment call for a single Apollo person ID.
-    Costs 1 export credit per call — only use when you need the email.
-    Returns email string or None.
-    """
-    data = _post("people/match", {"id": person_id, "reveal_personal_emails": False})
-    person = data.get("person", {})
-    return person.get("email") or None
+    data = _post("mixed_people/api_search", payload)
+    return [
+        {
+            "id": p.get("id", ""),
+            "name": p.get("name") or f'{p.get("first_name", "")} {p.get("last_name", "")}'.strip(),
+            "title": p.get("title", ""),
+            "email": p.get("email") or "",
+            "linkedin_url": p.get("linkedin_url") or "",
+        }
+        for p in data.get("people", [])
+    ]

@@ -39,12 +39,10 @@ def get_existing_keys(filepath: str = CSV_FILE) -> set[str]:
         for row in reader:
             if len(row) < 8:
                 continue
-            linkedin = row[6].strip()
-            email = row[5].strip()
-            apollo = row[7].strip()
-            key = linkedin or email or apollo
-            if key:
-                keys.add(key)
+            for val in (row[6], row[5], row[7]):  # linkedin, email, id
+                v = val.strip().lower().rstrip("/")
+                if v:
+                    keys.add(v)
     return keys
 
 

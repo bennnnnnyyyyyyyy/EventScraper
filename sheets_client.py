@@ -35,18 +35,16 @@ def get_existing_keys(ws: gspread.Worksheet) -> set[str]:
     for row in rows:
         if len(row) < 8:
             continue
-        linkedin = row[6].strip()
-        email    = row[5].strip()
-        apollo   = row[7].strip()
-        key = linkedin or email or apollo
-        if key:                          # never add empty string — avoids false dedup
-            keys.add(key)
+        for val in (row[6], row[5], row[7]):  # linkedin, email, id
+            v = val.strip().lower().rstrip("/")
+            if v:
+                keys.add(v)
     return keys
 
 
 def append_rows(ws: gspread.Worksheet, rows: list[list]) -> None:
     if rows:
-        ws.append_rows(rows, value_input_option="USER_ENTERED")
+        ws.append_rows(rows, value_input_option="RAW")  # RAW prevents formula injection
 
 
 def open_and_prepare() -> gspread.Worksheet:

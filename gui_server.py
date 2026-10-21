@@ -17,9 +17,24 @@ CONFIG_FILE = "config.py"
 PYTHON_EXE = sys.executable
 
 
-class AdminRequestHandler(http.server.SimpleHTTPRequestHandler):
+class AdminRequestHandler(http.server.BaseHTTPRequestHandler):
+
+    def _local_only(self) -> bool:
+        """Reject requests not coming from the local browser."""
+        host = self.headers.get("Host", "")
+        origin = self.headers.get("Origin", "")
+        return (
+            host in ("localhost:8080", "127.0.0.1:8080")
+            and origin in ("", f"http://{host}")
+        )
+
+    def log_message(self, format, *args):
+        pass  # suppress noisy request logs
 
     def do_GET(self):
+        if not self._local_only():
+            self.send_error(403, "Forbidden")
+            return
         if self.path == "/" or self.path == "/index.html":
             self.send_response(200)
             self.send_header("Content-Type", "text/html; charset=utf-8")
@@ -78,9 +93,12 @@ class AdminRequestHandler(http.server.SimpleHTTPRequestHandler):
                 self.send_error(404, "CSV file not found")
             return
 
-        super().do_GET()
+        self.send_error(404, "Not found")
 
     def do_POST(self):
+        if not self._local_only():
+            self.send_error(403, "Forbidden")
+            return
         content_length = int(self.headers.get("Content-Length", 0))
         body = self.rfile.read(content_length).decode("utf-8")
         payload = json.loads(body) if body else {}
@@ -124,19 +142,19 @@ class AdminRequestHandler(http.server.SimpleHTTPRequestHandler):
         new_lines = []
         for line in lines:
             if line.startswith("HUNTER_API_KEY ="):
-                new_lines.append(f'HUNTER_API_KEY = os.environ.get("HUNTER_API_KEY", "{data.get("HUNTER_API_KEY", "")}")\n')
+                new_lines.append(f'HUNTER_API_KEY = os.environ.get("HUNTER_API_KEY", {json.dumps(str(data.get("HUNTER_API_KEY", "")))})\n')
             elif line.startswith("PROSPEO_API_KEY ="):
-                new_lines.append(f'PROSPEO_API_KEY = os.environ.get("PROSPEO_API_KEY", "{data.get("PROSPEO_API_KEY", "")}")\n')
+                new_lines.append(f'PROSPEO_API_KEY = os.environ.get("PROSPEO_API_KEY", {json.dumps(str(data.get("PROSPEO_API_KEY", "")))})\n')
             elif line.startswith("SNOV_CLIENT_ID ="):
-                new_lines.append(f'SNOV_CLIENT_ID = os.environ.get("SNOV_CLIENT_ID", "{data.get("SNOV_CLIENT_ID", "")}")\n')
+                new_lines.append(f'SNOV_CLIENT_ID = os.environ.get("SNOV_CLIENT_ID", {json.dumps(str(data.get("SNOV_CLIENT_ID", "")))})\n')
             elif line.startswith("SNOV_CLIENT_SECRET ="):
-                new_lines.append(f'SNOV_CLIENT_SECRET = os.environ.get("SNOV_CLIENT_SECRET", "{data.get("SNOV_CLIENT_SECRET", "")}")\n')
+                new_lines.append(f'SNOV_CLIENT_SECRET = os.environ.get("SNOV_CLIENT_SECRET", {json.dumps(str(data.get("SNOV_CLIENT_SECRET", "")))})\n')
             elif line.startswith("APOLLO_API_KEY ="):
-                new_lines.append(f'APOLLO_API_KEY = os.environ.get("APOLLO_API_KEY", "{data.get("APOLLO_API_KEY", "")}")\n')
+                new_lines.append(f'APOLLO_API_KEY = os.environ.get("APOLLO_API_KEY", {json.dumps(str(data.get("APOLLO_API_KEY", "")))})\n')
             elif line.startswith("CREDIT_LIMIT ="):
-                new_lines.append(f'CREDIT_LIMIT = {data.get("CREDIT_LIMIT", 200)}\n')
+                new_lines.append(f'CREDIT_LIMIT = {int(data.get("CREDIT_LIMIT", 200))}\n')
             elif line.startswith("PEOPLE_PER_DOMAIN ="):
-                new_lines.append(f'PEOPLE_PER_DOMAIN = {data.get("PEOPLE_PER_DOMAIN", 5)}\n')
+                new_lines.append(f'PEOPLE_PER_DOMAIN = {int(data.get("PEOPLE_PER_DOMAIN", 5))}\n')
             else:
                 new_lines.append(line)
 

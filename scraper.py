@@ -2,17 +2,17 @@
 scraper.py  --  Egypt Retail Summit 2026 prospect scraper
 ──────────────────────────────────────────────────────────
 Usage:
-    python scraper.py                              # write to CSV using Prospeo
+    python scraper.py                              # write to CSV using Hunter
     python scraper.py --provider hunter            # write to CSV using Hunter.io
     python scraper.py --provider snov              # write to CSV using Snov.io
     python scraper.py --provider fake --dry-run    # 0-cost local test run
     python scraper.py --output sheets              # write to Google Sheet
 
 Providers:
-    prospeo: Prospeo.io search-person API (default)
-    hunter : Hunter.io domain-search API
+    hunter : Hunter.io domain-search API (default)
+    prospeo: Prospeo.io search-person API
     snov   : Snov.io async domain-emails API
-    apollo : Apollo.io mixed_people search
+    apollo : Apollo.io mixed_people api_search
     fake   : Local mock data (0 credits)
 """
 
@@ -77,12 +77,13 @@ def person_to_row(company: str, domain: str, person: dict, provider: str) -> lis
     ]
 
 
-def dedup_key(row: list) -> str:
-    """Returns the best unique identifier for a row, or '' if none exist."""
-    linkedin = row[6].strip() if len(row) > 6 else ""
-    email    = row[5].strip() if len(row) > 5 else ""
-    apollo   = row[7].strip() if len(row) > 7 else ""
-    return linkedin or email or apollo   # '' is falsy — caller uses `if key and key in existing`
+def dedup_keys(row: list) -> set[str]:
+    """Return all non-empty identifiers for a row, lowercased and stripped."""
+    return {
+        v.strip().lower().rstrip("/")
+        for v in (row[6], row[5], row[7])
+        if len(row) > 7 and v and v.strip()
+    }
 
 
 def run(provider: str, output: str, dry_run: bool) -> None:
@@ -133,10 +134,10 @@ def run(provider: str, output: str, dry_run: bool) -> None:
         added = 0
         for p in people:
             row = person_to_row(company, domain, p, provider)
-            key = dedup_key(row)
-            if key and key in existing:
+            keys = dedup_keys(row)
+            if keys & existing:
                 continue
-            existing.add(key)
+            existing |= keys
             new_rows.append(row)
             added += 1
             if dry_run:
