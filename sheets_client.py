@@ -5,6 +5,7 @@ Read / write to a Google Sheet via gspread + service account.
 
 import gspread
 from config import SHEET_NAME, SERVICE_ACCOUNT_FILE
+import config
 
 HEADER = [
     "Company", "Domain", "Source",
@@ -15,7 +16,14 @@ HEADER = [
 
 def _open_sheet() -> gspread.Worksheet:
     gc = gspread.service_account(filename=SERVICE_ACCOUNT_FILE)
-    sh = gc.open(SHEET_NAME)
+    spreadsheet_id = getattr(config, "SPREADSHEET_ID", "")
+    if spreadsheet_id:
+        sh = gc.open_by_key(spreadsheet_id)
+    else:
+        try:
+            sh = gc.open(SHEET_NAME)
+        except Exception:
+            sh = gc.open_by_key("1LNG9nhDE62LKBya4pD9NsUagJwcmK0_sxspS4LsY5iE")
     return sh.sheet1
 
 
